@@ -399,7 +399,7 @@ body {
 
 .sticky-title-wrapper {
 	width: 100%;
-	height: 350vh;
+	height: 350svh;
 	position: relative;
 	color: #fff;
 	overflow-x: clip; /* contains vw/clamp weirdness */
@@ -409,7 +409,7 @@ body {
 .sticky-title-container {
 	position: sticky;
 	top: 0;
-	height: 100vh;
+	height: 100svh;
 	width: 100%;
 	padding: 1.5rem;
 
