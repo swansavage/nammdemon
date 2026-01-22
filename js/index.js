@@ -682,180 +682,91 @@ document.addEventListener('DOMContentLoaded', function () {
 	initBunnyPlayerBackground();
 });
 
-gsap.registerPlugin(Draggable, InertiaPlugin, Observer, ScrollTrigger);
+// Parallax drift for the Demo Section title stack (layered depth option)
+// Requires GSAP + ScrollTrigger already loaded and registered elsewhere.
 
-function init3dImageCarousel() {
-	let radius;
-	let draggableInstance;
-	let observerInstance;
-	let spin;
-	let intro;
-	let lastWidth = window.innerWidth;
+function initDemoTitleParallax() {
+	const sections = document.querySelectorAll('.demo-section');
+	if (!sections.length) return;
 
-	const wrap = document.querySelector('[data-3d-carousel-wrap]');
-	if (!wrap) return;
+	sections.forEach((section) => {
+		const title = section.querySelector('.demo-section__title-stack');
+		if (!title) return;
 
-	// Define the radius of your cylinder here
-	const calcRadius = () => {
-		radius = window.innerWidth * 0.5;
-	};
+		const logo = title.querySelector('.demo-section__title-media');
+		const details = title.querySelector('.demo-section__details');
+		const kicker = title.querySelector('.demo-section__kicker');
 
-	// Destroy function to reset everything on resize
-	const destroy = () => {
-		draggableInstance && draggableInstance.kill();
-		observerInstance && observerInstance.kill();
-		spin && spin.kill();
-		intro && intro.kill();
-		ScrollTrigger.getAll().forEach((st) => st.kill());
-		const panels = wrap.querySelectorAll('[data-3d-carousel-panel]');
-		gsap.set(panels, { clearProps: 'transform' });
-	};
-
-	// Create function that sets the spin, drag, and rotation
-	const create = () => {
-		calcRadius();
-
-		const panels = wrap.querySelectorAll('[data-3d-carousel-panel]');
-		const content = wrap.querySelectorAll('[data-3d-carousel-content]');
-		const proxy = document.createElement('div');
-		const wrapProgress = gsap.utils.wrap(0, 1);
-		const dragDistance = window.innerWidth * 3; // Control the snapiness on drag
-		let startProg;
-
-		// Position panels in 3D space
-		panels.forEach((p) => (p.style.transformOrigin = `50% 50% ${-radius}px`));
-
-		// Infinite rotation of all panels
-		spin = gsap.fromTo(
-			panels,
-			{ rotationY: (i) => (i * 360) / panels.length },
-			{ rotationY: '-=360', duration: 30, ease: 'none', repeat: -1 },
+		// Base drift (subtle)
+		gsap.fromTo(
+			title,
+			{ y: 14 },
+			{
+				y: -14,
+				ease: 'none',
+				scrollTrigger: {
+					trigger: section,
+					start: 'top bottom',
+					end: 'bottom top',
+					scrub: true,
+				},
+			},
 		);
 
-		// cheeky workaround to create some 'buffer' when scrolling back up
-		spin.progress(1000);
-
-		draggableInstance = Draggable.create(proxy, {
-			trigger: wrap,
-			type: 'x',
-			inertia: true,
-			allowNativeTouchScrolling: true,
-			onPress() {
-				// Subtle feedback on touch/mousedown of the wrap
-				gsap.to(content, {
-					clipPath: 'inset(5%)',
-					duration: 0.3,
-					ease: 'power4.out',
-					overwrite: 'auto',
-				});
-				// Stop automatic spinning to prepare for drag
-				gsap.killTweensOf(spin);
-				spin.timeScale(0);
-				startProg = spin.progress();
-			},
-			onDrag() {
-				const p = startProg + (this.startX - this.x) / dragDistance;
-				spin.progress(wrapProgress(p));
-			},
-			onThrowUpdate() {
-				const p = startProg + (this.startX - this.x) / dragDistance;
-				spin.progress(wrapProgress(p));
-			},
-			onRelease() {
-				if (!this.tween || !this.tween.isActive()) {
-					gsap.to(spin, { timeScale: 1, duration: 0.1 });
-				}
-				gsap.to(content, {
-					clipPath: 'inset(0%)',
-					duration: 0.5,
-					ease: 'power4.out',
-					overwrite: 'auto',
-				});
-			},
-			onThrowComplete() {
-				gsap.to(spin, { timeScale: 1, duration: 0.1 });
-			},
-		})[0];
-
-		// Scroll-into-view animation
-		intro = gsap.timeline({
-			scrollTrigger: {
-				trigger: wrap,
-				start: 'top 80%',
-				end: 'bottom top',
-				scrub: false,
-				toggleActions: 'play resume play play',
-			},
-			defaults: { ease: 'expo.inOut' },
-		});
-		intro
-			.fromTo(spin, { timeScale: 15 }, { timeScale: 1, duration: 2 })
-			.fromTo(
-				wrap,
-				{ scale: 0.5, rotation: 12 },
-				{ scale: 1, rotation: 5, duration: 1.2 },
-				'<',
-			)
-			.fromTo(
-				content,
-				{ autoAlpha: 0 },
-				{ autoAlpha: 1, stagger: { amount: 0.8, from: 'random' } },
-				'<',
-			);
-
-		// While-scrolling feedback
-		observerInstance = Observer.create({
-			target: window,
-			type: 'wheel,scroll,touch',
-			onChangeY: (self) => {
-				// Control how much scroll speed affects the rotation on scroll
-				let v = gsap.utils.clamp(-60, 60, self.velocityY * 0.005);
-				spin.timeScale(v);
-				const resting = v < 0 ? -1 : 1;
-
-				gsap.fromTo(
-					{ value: v },
-					{ value: v },
-					{
-						value: resting,
-						duration: 1.2,
-						onUpdate() {
-							spin.timeScale(this.targets()[0].value);
-						},
+		// Layered depth (slightly different drifts)
+		if (logo) {
+			gsap.fromTo(
+				logo,
+				{ y: 10 },
+				{
+					y: -10,
+					ease: 'none',
+					scrollTrigger: {
+						trigger: section,
+						start: 'top bottom',
+						end: 'bottom top',
+						scrub: true,
 					},
-				);
-			},
-		});
-	};
+				},
+			);
+		}
 
-	// First create on function call
-	create();
+		if (details) {
+			gsap.fromTo(
+				details,
+				{ y: 22 },
+				{
+					y: -22,
+					ease: 'none',
+					scrollTrigger: {
+						trigger: section,
+						start: 'top bottom',
+						end: 'bottom top',
+						scrub: true,
+					},
+				},
+			);
+		}
 
-	// Debounce function to use on resize events
-	const debounce = (fn, ms) => {
-		let t;
-		return () => {
-			clearTimeout(t);
-			t = setTimeout(fn, ms);
-		};
-	};
-
-	// Whenever window resizes, first destroy, then re-init it all
-	window.addEventListener(
-		'resize',
-		debounce(() => {
-			const newWidth = window.innerWidth;
-			if (newWidth !== lastWidth) {
-				lastWidth = newWidth;
-				destroy();
-				create();
-				ScrollTrigger.refresh();
-			}
-		}, 200),
-	);
+		if (kicker) {
+			gsap.fromTo(
+				kicker,
+				{ y: 6 },
+				{
+					y: -6,
+					ease: 'none',
+					scrollTrigger: {
+						trigger: section,
+						start: 'top bottom',
+						end: 'bottom top',
+						scrub: true,
+					},
+				},
+			);
+		}
+	});
 }
 
-// Initialize 3D Image Carousel
 document.addEventListener('DOMContentLoaded', () => {
-	init3dImageCarousel();
+	initDemoTitleParallax();
 });
