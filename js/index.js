@@ -787,3 +787,37 @@ function initBunnyPlayerBackground() {
 document.addEventListener('DOMContentLoaded', function () {
 	initBunnyPlayerBackground();
 });
+
+function initSimpleRevealAnimations() {
+	const items = document.querySelectorAll(
+		'[data-animate="slide-in-blurred-bottom"]',
+	);
+
+	if (!items.length) return;
+
+	const observer = new IntersectionObserver(
+		(entries, obs) => {
+			entries.forEach((entry) => {
+				if (!entry.isIntersecting) return;
+
+				const el = entry.target;
+
+				// Trigger animation
+				el.classList.add('slide-in-blurred-bottom');
+
+				// Stop observing after first reveal
+				obs.unobserve(el);
+			});
+		},
+		{
+			threshold: 0.15, // reveal when ~15% visible
+			rootMargin: '0px 0px -10% 0px', // slightly earlier
+		},
+	);
+
+	items.forEach((el) => observer.observe(el));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+	initSimpleRevealAnimations();
+});
