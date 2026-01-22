@@ -127,6 +127,9 @@ ScrollTrigger.config({
 function initStickyTitleScroll() {
 	const wraps = document.querySelectorAll('[data-sticky-title="wrap"]');
 
+	// Prefer words-only animation on mobile to reduce jitter + DOM load
+	const isMobile = window.matchMedia('(max-width: 767px)').matches;
+
 	wraps.forEach((wrap) => {
 		const headings = Array.from(
 			wrap.querySelectorAll('[data-sticky-title="heading"]'),
@@ -138,6 +141,8 @@ function initStickyTitleScroll() {
 				start: 'top 40%',
 				end: 'bottom bottom',
 				scrub: 0.4,
+				// Keep transforms stable across mobile repaint/compositing quirks
+				invalidateOnRefresh: false,
 			},
 		});
 
@@ -149,36 +154,39 @@ function initStickyTitleScroll() {
 			// Save original heading content for screen readers
 			heading.setAttribute('aria-label', heading.textContent);
 
-			const split = new SplitText(heading, { type: 'words,chars' });
+			const split = new SplitText(heading, {
+				type: isMobile ? 'words' : 'words,chars',
+			});
 
 			// Hide all the separate words from screenreader
 			split.words.forEach((word) => word.setAttribute('aria-hidden', 'true'));
 
 			// Reset visibility on the 'stacked' headings
-			gsap.set(heading, { visibility: 'visible' });
+			gsap.set(heading, { visibility: 'visible', force3D: false });
+
+			const targets = isMobile ? split.words : split.chars;
 
 			const headingTl = gsap.timeline();
-			headingTl.from(split.chars, {
+
+			headingTl.from(targets, {
 				autoAlpha: 0,
 				stagger: { amount: revealDuration, from: 'start' },
 				duration: revealDuration,
+				ease: 'none',
 			});
 
 			// Animate fade-out for every heading except the last one.
 			if (index < headings.length - 1) {
-				headingTl.to(split.chars, {
+				headingTl.to(targets, {
 					autoAlpha: 0,
 					stagger: { amount: fadeOutDuration, from: 'end' },
 					duration: fadeOutDuration,
+					ease: 'none',
 				});
 			}
 
 			// Overlap the start of fade-in of the new heading a little bit
-			if (index === 0) {
-				masterTl.add(headingTl);
-			} else {
-				masterTl.add(headingTl, `-=${overlapOffset}`);
-			}
+			masterTl.add(headingTl, index === 0 ? 0 : `-=${overlapOffset}`);
 		});
 	});
 }
