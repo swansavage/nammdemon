@@ -137,7 +137,7 @@ function initStickyTitleScroll() {
 				trigger: wrap,
 				start: 'top 40%',
 				end: 'bottom bottom',
-				scrub: true,
+				scrub: 0.4,
 			},
 		});
 
