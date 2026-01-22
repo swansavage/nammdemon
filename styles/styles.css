@@ -402,7 +402,7 @@ body {
 	height: 350svh;
 	position: relative;
 	color: #fff;
-	overflow-x: clip; /* contains vw/clamp weirdness */
+	overflow-x: visible;
 	z-index: 1;
 }
 
@@ -418,12 +418,6 @@ body {
 	justify-content: center;
 
 	box-sizing: border-box;
-}
-
-@supports (-webkit-touch-callout: none) {
-	.sticky-title-container {
-		height: -webkit-fill-available;
-	}
 }
 
 .sticky-title-inner {
@@ -465,7 +459,7 @@ body {
 	max-width: 100%;
 	box-sizing: border-box;
 
-	font-size: clamp(1.5rem, 4.6vw, 2.75rem);
+	font-size: clamp(1.8rem, 4.6vw, 2.75rem);
 	font-weight: 500;
 	line-height: 1.2;
 
@@ -493,7 +487,7 @@ body {
 	}
 
 	.sticky-title-el {
-		font-size: clamp(1.5rem, 5.6vw, 2.9rem);
+		font-size: clamp(1.8rem, 5.6vw, 2.9rem);
 		line-height: 1.25;
 	}
 }

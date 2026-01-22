@@ -127,25 +127,22 @@ ScrollTrigger.config({
 function initStickyTitleScroll() {
 	const wraps = document.querySelectorAll('[data-sticky-title="wrap"]');
 
-	const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-	const isSmall = window.matchMedia('(max-width: 767px)').matches;
+	// Prefer words-only animation on mobile to reduce jitter + DOM load
+	const isMobile = window.matchMedia('(max-width: 767px)').matches;
 
 	wraps.forEach((wrap) => {
 		const headings = Array.from(
 			wrap.querySelectorAll('[data-sticky-title="heading"]'),
 		);
 
-		const stickyEl = wrap.querySelector('.sticky-title-container') || wrap;
-
 		const masterTl = gsap.timeline({
 			scrollTrigger: {
 				trigger: wrap,
-				start: 'top top',
+				start: 'top 40%',
 				end: 'bottom bottom',
 				scrub: 0.4,
-				pin: isIOS ? stickyEl : false,
-				pinSpacing: false,
-				anticipatePin: 1,
+				// Keep transforms stable across mobile repaint/compositing quirks
+				invalidateOnRefresh: false,
 			},
 		});
 
@@ -154,21 +151,23 @@ function initStickyTitleScroll() {
 			overlapOffset = 0.15;
 
 		headings.forEach((heading, index) => {
+			// Save original heading content for screen readers
 			heading.setAttribute('aria-label', heading.textContent);
 
-			const useWordsOnly = isIOS || isSmall;
-
 			const split = new SplitText(heading, {
-				type: useWordsOnly ? 'words' : 'words,chars',
+				type: isMobile ? 'words' : 'words,chars',
 			});
 
+			// Hide all the separate words from screenreader
 			split.words.forEach((word) => word.setAttribute('aria-hidden', 'true'));
 
+			// Reset visibility on the 'stacked' headings
 			gsap.set(heading, { visibility: 'visible', force3D: false });
 
-			const targets = useWordsOnly ? split.words : split.chars;
+			const targets = isMobile ? split.words : split.chars;
 
 			const headingTl = gsap.timeline();
+
 			headingTl.from(targets, {
 				autoAlpha: 0,
 				stagger: { amount: revealDuration, from: 'start' },
@@ -176,6 +175,7 @@ function initStickyTitleScroll() {
 				ease: 'none',
 			});
 
+			// Animate fade-out for every heading except the last one.
 			if (index < headings.length - 1) {
 				headingTl.to(targets, {
 					autoAlpha: 0,
@@ -185,13 +185,16 @@ function initStickyTitleScroll() {
 				});
 			}
 
+			// Overlap the start of fade-in of the new heading a little bit
 			masterTl.add(headingTl, index === 0 ? 0 : `-=${overlapOffset}`);
 		});
 	});
 }
 
 // Initialize Sticky Title Scroll Effect
-document.addEventListener('DOMContentLoaded', initStickyTitleScroll);
+document.addEventListener('DOMContentLoaded', () => {
+	initStickyTitleScroll();
+});
 
 // Register GSAP Plugins
 gsap.registerPlugin(ScrollTrigger);
