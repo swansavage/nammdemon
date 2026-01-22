@@ -1,3 +1,13 @@
+/**
+ * =========================
+ * Eternal Research - Demon Box Microsite
+ * Full JS (fixed: removes post-loader "jump" by delaying ScrollTrigger inits)
+ * =========================
+ */
+
+/* -------------------------
+   Loader
+   ------------------------- */
 function initLogoRevealLoader() {
 	gsap.registerPlugin(CustomEase, SplitText);
 	CustomEase.create('loader', '0.65, 0.01, 0.05, 0.99');
@@ -11,7 +21,7 @@ function initLogoRevealLoader() {
 	const logo = wrap.querySelector('[data-load-logo]');
 	const textElements = Array.from(wrap.querySelectorAll('[data-load-text]'));
 
-	// Reset targets that are * not * split text targets
+	// Reset targets that are *not* split text targets
 	const resetTargets = Array.from(
 		wrap.querySelectorAll('[data-load-reset]:not([data-load-text])'),
 	);
@@ -36,9 +46,23 @@ function initLogoRevealLoader() {
 		.add('hideContent', '<')
 		.to(bg, { yPercent: -101, duration: 1 }, 'hideContent')
 		.to(bg, { yPercent: -101, duration: 1 }, 'hideContent')
-		.call(() => document.documentElement.classList.remove('is-loading'))
-		.set(wrap, { display: 'none' })
+		.call(() => {
+			// Prevent iOS scroll restoration flicker + scroll-jump
+			window.scrollTo(0, 0);
 
+			// Reveal the page
+			document.documentElement.classList.remove('is-loading');
+
+			// Wait for fonts (major layout-shift culprit), then init ScrollTriggers
+			const ready =
+				'fonts' in document && document.fonts?.ready
+					? document.fonts.ready
+					: Promise.resolve();
+
+			ready.then(() => {
+				initAfterLoader();
+			});
+		})
 		.set(wrap, { display: 'none' });
 
 	// If there are items to hide FOUC for, reset them at the start
@@ -113,17 +137,23 @@ function initLogoRevealLoader() {
 	}
 }
 
-// Initialize Logo Reveal Loader
+// Initialize Logo Reveal Loader (ONLY this runs on DOMContentLoaded)
 document.addEventListener('DOMContentLoaded', () => {
 	initLogoRevealLoader();
 });
 
+/* -------------------------
+   GSAP + ScrollTrigger base config
+   ------------------------- */
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
 ScrollTrigger.config({
 	ignoreMobileResize: true,
 });
 
+/* -------------------------
+   Sticky Title Scroll
+   ------------------------- */
 function initStickyTitleScroll() {
 	const wraps = document.querySelectorAll('[data-sticky-title="wrap"]');
 
@@ -141,7 +171,6 @@ function initStickyTitleScroll() {
 				start: 'top 40%',
 				end: 'bottom bottom',
 				scrub: 0.4,
-				// Keep transforms stable across mobile repaint/compositing quirks
 				invalidateOnRefresh: false,
 			},
 		});
@@ -151,7 +180,6 @@ function initStickyTitleScroll() {
 			overlapOffset = 0.15;
 
 		headings.forEach((heading, index) => {
-			// Save original heading content for screen readers
 			heading.setAttribute('aria-label', heading.textContent);
 
 			const split = new SplitText(heading, {
@@ -175,7 +203,6 @@ function initStickyTitleScroll() {
 				ease: 'none',
 			});
 
-			// Animate fade-out for every heading except the last one.
 			if (index < headings.length - 1) {
 				headingTl.to(targets, {
 					autoAlpha: 0,
@@ -185,23 +212,17 @@ function initStickyTitleScroll() {
 				});
 			}
 
-			// Overlap the start of fade-in of the new heading a little bit
 			masterTl.add(headingTl, index === 0 ? 0 : `-=${overlapOffset}`);
 		});
 	});
 }
 
-// Initialize Sticky Title Scroll Effect
-document.addEventListener('DOMContentLoaded', () => {
-	initStickyTitleScroll();
-});
-
-// Register GSAP Plugins
-gsap.registerPlugin(ScrollTrigger);
-
+/* -------------------------
+   Progress Navigation
+   ------------------------- */
 function initProgressNavigation() {
-	// Cache the parent container
 	let navProgress = document.querySelector('[data-progress-nav-list]');
+	if (!navProgress) return;
 
 	// Create or select the moving indicator
 	let indicator = navProgress.querySelector('.progress-nav__indicator');
@@ -211,14 +232,15 @@ function initProgressNavigation() {
 		navProgress.appendChild(indicator);
 	}
 
-	// Function to update the indicator based on the active nav link
 	function updateIndicator(activeLink) {
+		if (!activeLink) return;
+
 		let parentWidth = navProgress.offsetWidth;
 		let parentHeight = navProgress.offsetHeight;
 
-		// Get the active link's position relative to the parent
 		let parentRect = navProgress.getBoundingClientRect();
 		let linkRect = activeLink.getBoundingClientRect();
+
 		let linkPos = {
 			left: linkRect.left - parentRect.left + navProgress.scrollLeft,
 			top: linkRect.top - parentRect.top + navProgress.scrollTop,
@@ -227,13 +249,11 @@ function initProgressNavigation() {
 		let linkWidth = activeLink.offsetWidth;
 		let linkHeight = activeLink.offsetHeight;
 
-		// Calculate percentage values relative to parent dimensions
 		let leftPercent = (linkPos.left / parentWidth) * 100;
 		let topPercent = (linkPos.top / parentHeight) * 100;
 		let widthPercent = (linkWidth / parentWidth) * 100;
 		let heightPercent = (linkHeight / parentHeight) * 100;
 
-		// Update the indicator with a smooth CSS transition (set in your CSS)
 		indicator.style.left = leftPercent + '%';
 		indicator.style.top = topPercent + '%';
 		indicator.style.width = widthPercent + '%';
@@ -241,17 +261,16 @@ function initProgressNavigation() {
 		indicator.style.opacity = '1';
 	}
 
-	// Get all anchor sections
 	let progressAnchors = gsap.utils.toArray('[data-progress-nav-anchor]');
+
 	function scrollActiveIntoView(activeLink) {
-		const list = navProgress; // your scrollable pill (.progress-nav__list)
-		if (!list) return;
+		const list = navProgress;
+		if (!list || !activeLink) return;
 
 		const listRect = list.getBoundingClientRect();
 		const linkRect = activeLink.getBoundingClientRect();
 
-		// If link is clipped left/right, scroll just enough to reveal it (with padding)
-		const pad = 16; // px breathing room inside the pill
+		const pad = 16;
 		const leftDiff = linkRect.left - listRect.left;
 		const rightDiff = linkRect.right - listRect.right;
 
@@ -264,6 +283,7 @@ function initProgressNavigation() {
 
 	progressAnchors.forEach((progressAnchor) => {
 		let anchorID = progressAnchor.getAttribute('id');
+		if (!anchorID) return;
 
 		ScrollTrigger.create({
 			trigger: progressAnchor,
@@ -273,16 +293,17 @@ function initProgressNavigation() {
 				let activeLink = navProgress.querySelector(
 					'[data-progress-nav-target="#' + anchorID + '"]',
 				);
+				if (!activeLink) return;
+
 				activeLink.classList.add('is--active');
-				// Remove 'is--active' class from sibling links
+
 				let siblings = navProgress.querySelectorAll(
 					'[data-progress-nav-target]',
 				);
 				siblings.forEach((sib) => {
-					if (sib !== activeLink) {
-						sib.classList.remove('is--active');
-					}
+					if (sib !== activeLink) sib.classList.remove('is--active');
 				});
+
 				updateIndicator(activeLink);
 				scrollActiveIntoView(activeLink);
 			},
@@ -290,16 +311,17 @@ function initProgressNavigation() {
 				let activeLink = navProgress.querySelector(
 					'[data-progress-nav-target="#' + anchorID + '"]',
 				);
+				if (!activeLink) return;
+
 				activeLink.classList.add('is--active');
-				// Remove 'is--active' class from sibling links
+
 				let siblings = navProgress.querySelectorAll(
 					'[data-progress-nav-target]',
 				);
 				siblings.forEach((sib) => {
-					if (sib !== activeLink) {
-						sib.classList.remove('is--active');
-					}
+					if (sib !== activeLink) sib.classList.remove('is--active');
 				});
+
 				updateIndicator(activeLink);
 				scrollActiveIntoView(activeLink);
 			},
@@ -307,11 +329,110 @@ function initProgressNavigation() {
 	});
 }
 
-// Initialize One Page Progress Navigation
-document.addEventListener('DOMContentLoaded', () => {
-	initProgressNavigation();
-});
+/* -------------------------
+   Demo title parallax (layered drift)
+   ------------------------- */
+function initDemoTitleParallax() {
+	const sections = document.querySelectorAll('.demo-section');
+	if (!sections.length) return;
 
+	sections.forEach((section) => {
+		const title = section.querySelector('.demo-section__title-stack');
+		if (!title) return;
+
+		const logo = title.querySelector('.demo-section__title-media');
+		const details = title.querySelector('.demo-section__details');
+		const kicker = title.querySelector('.demo-section__kicker');
+
+		gsap.fromTo(
+			title,
+			{ y: 14 },
+			{
+				y: -14,
+				ease: 'none',
+				scrollTrigger: {
+					trigger: section,
+					start: 'top bottom',
+					end: 'bottom top',
+					scrub: true,
+				},
+			},
+		);
+
+		if (logo) {
+			gsap.fromTo(
+				logo,
+				{ y: 10 },
+				{
+					y: -10,
+					ease: 'none',
+					scrollTrigger: {
+						trigger: section,
+						start: 'top bottom',
+						end: 'bottom top',
+						scrub: true,
+					},
+				},
+			);
+		}
+
+		if (details) {
+			gsap.fromTo(
+				details,
+				{ y: 22 },
+				{
+					y: -22,
+					ease: 'none',
+					scrollTrigger: {
+						trigger: section,
+						start: 'top bottom',
+						end: 'bottom top',
+						scrub: true,
+					},
+				},
+			);
+		}
+
+		if (kicker) {
+			gsap.fromTo(
+				kicker,
+				{ y: 6 },
+				{
+					y: -6,
+					ease: 'none',
+					scrollTrigger: {
+						trigger: section,
+						start: 'top bottom',
+						end: 'bottom top',
+						scrub: true,
+					},
+				},
+			);
+		}
+	});
+}
+
+/* -------------------------
+   After-loader init (prevents iOS snap/jump)
+   ------------------------- */
+function initAfterLoader() {
+	// Prevent duplicates if loader runs again in dev/hot reload
+	ScrollTrigger.getAll().forEach((st) => st.kill());
+
+	initStickyTitleScroll();
+	initProgressNavigation();
+	initDemoTitleParallax();
+
+	// Two-pass refresh helps iOS/Safari settle sticky + fonts
+	requestAnimationFrame(() => {
+		ScrollTrigger.refresh(true);
+		setTimeout(() => ScrollTrigger.refresh(true), 50);
+	});
+}
+
+/* -------------------------
+   Misc UI (can stay on normal scroll)
+   ------------------------- */
 window.addEventListener(
 	'scroll',
 	() => {
@@ -322,7 +443,9 @@ window.addEventListener(
 	{ passive: true },
 );
 
-/* Lenis */
+/* -------------------------
+   Lenis + Typo Scroll Preview
+   ------------------------- */
 var lenis = null;
 
 function initTypoScrollPreview() {
@@ -455,11 +578,13 @@ function initTypoScrollPreview() {
 	}
 }
 
-// Initialize Big Typo Scroll Preview (Infinite)
 document.addEventListener('DOMContentLoaded', function () {
 	initTypoScrollPreview();
 });
 
+/* -------------------------
+   Bunny background video
+   ------------------------- */
 function initBunnyPlayerBackground() {
 	document
 		.querySelectorAll('[data-bunny-background-init]')
@@ -478,7 +603,6 @@ function initBunnyPlayerBackground() {
 				video.load();
 			} catch (_) {}
 
-			// Attribute helpers
 			function setStatus(s) {
 				if (player.getAttribute('data-player-status') !== s) {
 					player.setAttribute('data-player-status', s);
@@ -489,16 +613,13 @@ function initBunnyPlayerBackground() {
 			}
 			if (!player.hasAttribute('data-player-activated')) setActivated(false);
 
-			// Flags
-			var lazyMode = player.getAttribute('data-player-lazy'); // "true" | "false" (no meta)
+			var lazyMode = player.getAttribute('data-player-lazy');
 			var isLazyTrue = lazyMode === 'true';
 			var autoplay = player.getAttribute('data-player-autoplay') === 'true';
 			var initialMuted = player.getAttribute('data-player-muted') === 'true';
 
-			// Used to suppress 'ready' flicker when user just pressed play in lazy modes
 			var pendingPlay = false;
 
-			// Autoplay forces muted + loop; IO will drive play/pause
 			if (autoplay) {
 				video.muted = true;
 				video.loop = true;
@@ -517,10 +638,8 @@ function initBunnyPlayerBackground() {
 			var isSafariNative = !!video.canPlayType('application/vnd.apple.mpegurl');
 			var canUseHlsJs = !!(window.Hls && Hls.isSupported()) && !isSafariNative;
 
-			// Attach media only once (for actual playback)
 			var isAttached = false;
-			var userInteracted = false;
-			var lastPauseBy = ''; // 'io' | 'manual' | ''
+			var lastPauseBy = '';
 			function attachMediaOnce() {
 				if (isAttached) return;
 				isAttached = true;
@@ -557,16 +676,13 @@ function initBunnyPlayerBackground() {
 				}
 			}
 
-			// Initialize based on lazy mode
 			if (isLazyTrue) {
 				video.preload = 'none';
 			} else {
 				attachMediaOnce();
 			}
 
-			// Toggle play/pause
 			function togglePlay() {
-				userInteracted = true;
 				if (video.paused || video.ended) {
 					if (isLazyTrue && !isAttached) attachMediaOnce();
 					pendingPlay = true;
@@ -579,7 +695,6 @@ function initBunnyPlayerBackground() {
 				}
 			}
 
-			// Toggle mute
 			function toggleMute() {
 				video.muted = !video.muted;
 				player.setAttribute(
@@ -588,7 +703,6 @@ function initBunnyPlayerBackground() {
 				);
 			}
 
-			// Controls (delegated)
 			player.addEventListener('click', function (e) {
 				var btn = e.target.closest('[data-player-control]');
 				if (!btn || !player.contains(btn)) return;
@@ -598,7 +712,6 @@ function initBunnyPlayerBackground() {
 				else if (type === 'mute') toggleMute();
 			});
 
-			// Media event wiring
 			video.addEventListener('play', function () {
 				setActivated(true);
 				setStatus('playing');
@@ -623,7 +736,6 @@ function initBunnyPlayerBackground() {
 				setActivated(false);
 			});
 
-			// In-view auto play/pause (only when autoplay is true)
 			if (autoplay) {
 				if (player._io) {
 					try {
@@ -659,7 +771,6 @@ function initBunnyPlayerBackground() {
 			}
 		});
 
-	// Helper: Ready status guard
 	function readyIfIdle(player, pendingPlay) {
 		if (
 			!pendingPlay &&
@@ -670,103 +781,12 @@ function initBunnyPlayerBackground() {
 		}
 	}
 
-	// Helper: safe programmatic play
 	function safePlay(video) {
 		var p = video.play();
 		if (p && typeof p.then === 'function') p.catch(function () {});
 	}
 }
 
-// Initialize Bunny HTML HLS Player (Background)
 document.addEventListener('DOMContentLoaded', function () {
 	initBunnyPlayerBackground();
-});
-
-// Parallax drift for the Demo Section title stack (layered depth option)
-// Requires GSAP + ScrollTrigger already loaded and registered elsewhere.
-
-function initDemoTitleParallax() {
-	const sections = document.querySelectorAll('.demo-section');
-	if (!sections.length) return;
-
-	sections.forEach((section) => {
-		const title = section.querySelector('.demo-section__title-stack');
-		if (!title) return;
-
-		const logo = title.querySelector('.demo-section__title-media');
-		const details = title.querySelector('.demo-section__details');
-		const kicker = title.querySelector('.demo-section__kicker');
-
-		// Base drift (subtle)
-		gsap.fromTo(
-			title,
-			{ y: 14 },
-			{
-				y: -14,
-				ease: 'none',
-				scrollTrigger: {
-					trigger: section,
-					start: 'top bottom',
-					end: 'bottom top',
-					scrub: true,
-				},
-			},
-		);
-
-		// Layered depth (slightly different drifts)
-		if (logo) {
-			gsap.fromTo(
-				logo,
-				{ y: 10 },
-				{
-					y: -10,
-					ease: 'none',
-					scrollTrigger: {
-						trigger: section,
-						start: 'top bottom',
-						end: 'bottom top',
-						scrub: true,
-					},
-				},
-			);
-		}
-
-		if (details) {
-			gsap.fromTo(
-				details,
-				{ y: 22 },
-				{
-					y: -22,
-					ease: 'none',
-					scrollTrigger: {
-						trigger: section,
-						start: 'top bottom',
-						end: 'bottom top',
-						scrub: true,
-					},
-				},
-			);
-		}
-
-		if (kicker) {
-			gsap.fromTo(
-				kicker,
-				{ y: 6 },
-				{
-					y: -6,
-					ease: 'none',
-					scrollTrigger: {
-						trigger: section,
-						start: 'top bottom',
-						end: 'bottom top',
-						scrub: true,
-					},
-				},
-			);
-		}
-	});
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-	initDemoTitleParallax();
 });
