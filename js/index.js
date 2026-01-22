@@ -120,6 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
+ScrollTrigger.config({
+	ignoreMobileResize: true,
+});
+
 function initStickyTitleScroll() {
 	const wraps = document.querySelectorAll('[data-sticky-title="wrap"]');
 
