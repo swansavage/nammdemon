@@ -1057,7 +1057,7 @@ body {
 /* Media Queries */
 @media screen and (max-width: 767px) {
 	.sticky-tab__title {
-		font-size: 2em;
+		font-size: 1.5em;
 	}
 
 	.demo-nav__ul {
