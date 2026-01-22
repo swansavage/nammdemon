@@ -6,6 +6,14 @@
 	font-display: swap;
 }
 
+@font-face {
+	font-family: 'Louize Trial Italic';
+	src: url('../assets/fonts/LouizeTrial-Italic.otf') format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
 html {
 	background-color: black;
 }
@@ -109,14 +117,10 @@ body {
 }
 
 .loader__text-el {
-	text-transform: uppercase;
 	white-space: nowrap;
 	margin-bottom: -0.25em;
 	padding-bottom: 0.25em;
-	font-family:
-		Haffer Mono,
-		Arial,
-		sans-serif;
+	font-family: 'Louize Trial Italic', serif;
 	position: absolute;
 }
 
@@ -907,7 +911,7 @@ body {
 }
 
 :root {
-	--nav-height: 6em;
+	--nav-height: 3.8em;
 }
 
 .container {
@@ -969,7 +973,7 @@ body {
 
 .sticky-tab-group__nav-bg {
 	z-index: 2;
-	height: var(--nav-height);
+
 	background-color: #000;
 	border-bottom: 1px solid #ffffff26;
 	width: 100%;
@@ -1145,11 +1149,6 @@ body {
 	display: none;
 }
 
-iframe.tube-player {
-	max-width: 100%;
-	margin-top: -25rem;
-}
-
 .sticky-title-el.spaced {
 	line-height: 2;
 }
@@ -1225,4 +1224,41 @@ iframe.tube-player {
 .er-info__icon {
 	display: inline-flex;
 	opacity: 0.95;
+}
+
+.youtube-section {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	margin-top: -4rem;
+	padding-bottom: 4rem;
+}
+
+.youtube-inner {
+	width: 100%;
+	max-width: 60rem;
+	border-radius: 2rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.youtube-inner-content {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	text-align: center;
+}
+
+/* NORMAL, RESPONSIVE YOUTUBE EMBED */
+.tube-player {
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	height: auto;
+	border: 0;
+	display: block;
+	border-radius: 1rem;
+	overflow: hidden;
+	margin: 0; /* IMPORTANT: no negative margin */
 }
