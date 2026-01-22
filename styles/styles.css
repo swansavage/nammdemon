@@ -420,6 +420,12 @@ body {
 	box-sizing: border-box;
 }
 
+@supports (-webkit-touch-callout: none) {
+	.sticky-title-container {
+		height: -webkit-fill-available;
+	}
+}
+
 .sticky-title-inner {
 	width: 100%;
 	max-width: 60em; /* no vw */
